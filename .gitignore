@@ -1,0 +1,13 @@
+/bin/
+/agy-patcher
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+*.agybak
+*.agysignbak
+.idea/
+.vscode/
+*.swp
+*~
