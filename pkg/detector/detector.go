@@ -5,9 +5,9 @@ import (
 	"os/exec"
 	"path/filepath"
 	"runtime"
+	"time"
 )
 
-// TargetPaths хранит найденные пути к установленным компонентам
 type TargetPaths struct {
 	CLI       string
 	Manager   string
@@ -20,13 +20,28 @@ func fileExists(p string) bool {
 	return err == nil && !fi.IsDir()
 }
 
-// FindTargets ищет установленные компоненты Antigravity в системе
+func selectNewest(candidates []string) string {
+	var newest string
+	var newestTime time.Time
+
+	for _, c := range candidates {
+		fi, err := os.Stat(c)
+		if err == nil && !fi.IsDir() {
+			if newest == "" || fi.ModTime().After(newestTime) {
+				newest = c
+				newestTime = fi.ModTime()
+			}
+		}
+	}
+	return newest
+}
+
 func FindTargets() TargetPaths {
 	var res TargetPaths
 
 	home, _ := os.UserHomeDir()
 
-	// 1. Поиск CLI (agy)
+	// 1. CLI (agy)
 	if p, err := exec.LookPath("agy"); err == nil {
 		res.CLI = p
 	} else if runtime.GOOS == "windows" {
@@ -35,12 +50,7 @@ func FindTargets() TargetPaths {
 			filepath.Join(os.Getenv("ProgramFiles"), "agy", "bin", "agy.exe"),
 			filepath.Join(home, "scoop", "apps", "agy", "current", "bin", "agy.exe"),
 		}
-		for _, c := range candidates {
-			if fileExists(c) {
-				res.CLI = c
-				break
-			}
-		}
+		res.CLI = selectNewest(candidates)
 	} else {
 		candidates := []string{
 			filepath.Join(home, ".local", "bin", "agy"),
@@ -49,92 +59,55 @@ func FindTargets() TargetPaths {
 			"/usr/bin/agy",
 			"/opt/homebrew/bin/agy",
 		}
-		for _, c := range candidates {
-			if fileExists(c) {
-				res.CLI = c
-				break
-			}
-		}
+		res.CLI = selectNewest(candidates)
 	}
 
-	// 2. Поиск Manager (language_server)
+	// 2. Manager (language_server)
 	if runtime.GOOS == "windows" {
 		candidates := []string{
 			filepath.Join(os.Getenv("LOCALAPPDATA"), "Programs", "Antigravity", "resources", "bin", "language_server.exe"),
 			filepath.Join(os.Getenv("ProgramFiles"), "Antigravity", "resources", "bin", "language_server.exe"),
 		}
-		for _, c := range candidates {
-			if fileExists(c) {
-				res.Manager = c
-				break
-			}
-		}
+		res.Manager = selectNewest(candidates)
 	} else if runtime.GOOS == "darwin" {
 		candidates := []string{
 			"/Applications/Antigravity.app/Contents/Resources/bin/language_server",
 			filepath.Join(home, "Applications", "Antigravity.app", "Contents/Resources/bin/language_server"),
 		}
-		for _, c := range candidates {
-			if fileExists(c) {
-				res.Manager = c
-				break
-			}
-		}
+		res.Manager = selectNewest(candidates)
 	} else {
-		// Linux
 		candidates := []string{
 			"/opt/Antigravity/resources/bin/language_server",
 			filepath.Join(home, ".local", "share", "Antigravity", "resources", "bin", "language_server"),
 			"/usr/lib/antigravity/resources/bin/language_server",
 			"/usr/share/antigravity/resources/bin/language_server",
 		}
-		for _, c := range candidates {
-			if fileExists(c) {
-				res.Manager = c
-				break
-			}
-		}
+		res.Manager = selectNewest(candidates)
 	}
 
-	// 3. Поиск IDE (main.js)
+	// 3. IDE (main.js)
 	if runtime.GOOS == "windows" {
 		candidates := []string{
 			filepath.Join(os.Getenv("LOCALAPPDATA"), "Programs", "antigravity-ide", "resources", "app", "out", "main.js"),
 			filepath.Join(os.Getenv("ProgramFiles"), "antigravity-ide", "resources", "app", "out", "main.js"),
 		}
-		for _, c := range candidates {
-			if fileExists(c) {
-				res.IDE = c
-				break
-			}
-		}
+		res.IDE = selectNewest(candidates)
 	} else if runtime.GOOS == "darwin" {
 		candidates := []string{
 			"/Applications/Antigravity IDE.app/Contents/Resources/app/out/main.js",
 			filepath.Join(home, "Applications", "Antigravity IDE.app", "Contents/Resources/app/out/main.js"),
 		}
-		for _, c := range candidates {
-			if fileExists(c) {
-				res.IDE = c
-				break
-			}
-		}
+		res.IDE = selectNewest(candidates)
 	} else {
-		// Linux
 		candidates := []string{
-			filepath.Join(home, ".local", "share", "antigravity-ide", "resources", "app", "out", "main.js"),
 			"/opt/antigravity-ide/resources/app/out/main.js",
+			filepath.Join(home, ".local", "share", "antigravity-ide", "resources", "app", "out", "main.js"),
 			"/usr/share/antigravity-ide/resources/app/out/main.js",
 		}
-		for _, c := range candidates {
-			if fileExists(c) {
-				res.IDE = c
-				break
-			}
-		}
+		res.IDE = selectNewest(candidates)
 	}
 
-	// 4. Поиск Extension (agy --hub)
+	// 4. Extension (agy --hub)
 	if home != "" {
 		binName := "agy"
 		if runtime.GOOS == "windows" {

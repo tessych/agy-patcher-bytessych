@@ -128,7 +128,7 @@ func runStatus(targets []targetDef) {
 
 		switch status {
 		case patcher.StatusPatched:
-			fmt.Printf("  status: %s[ok] patched (eligibility bypass active)%s\n\n", colorGreen, colorReset)
+			fmt.Printf("  status: %s[ok] patched%s\n\n", colorGreen, colorReset)
 		case patcher.StatusUnpatched:
 			fmt.Printf("  status: %s[--] unpatched (ready to patch)%s\n\n", colorYellow, colorReset)
 		default:

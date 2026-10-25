@@ -54,7 +54,7 @@ var (
 		),
 		Fix:    []byte{0x48, 0x85, 0xc9, 0x90},
 		Offset: 9,
-		Desc:   "eligibility screen off (x64)",
+		Desc:   "gate bypass (x64)",
 		Arch:   bin.ArchX64,
 	}
 
@@ -83,14 +83,14 @@ var (
 		),
 		Fix:    []byte{0x22, 0x00, 0x80, 0x52},
 		Offset: 0,
-		Desc:   "eligibility screen off (arm64)",
+		Desc:   "gate bypass (arm64)",
 		Arch:   bin.ArchARM64,
 		Accept: patcher.CLIARM64Context,
 	}
 
 	CLIGate = &patcher.MultiGate{
 		Gates: []*patcher.Gate{CLIGateX64, CLIGateARM64},
-		Desc:  "CLI eligibility gate",
+		Desc:  "CLI gate",
 	}
 
 	// Manager 2.19.1 Windows x64: force hasValidAuth and fall through to token attachment.
