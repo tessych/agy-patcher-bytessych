@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"net"
 	"net/http"
+	"os"
+	"strings"
 	"time"
 )
 
@@ -15,6 +17,31 @@ type CheckResult struct {
 	Success bool
 	Latency time.Duration
 	Error   string
+}
+
+// EnvCheckResult содержит результат проверки параметров окружения
+type EnvCheckResult struct {
+	Key         string
+	Value       string
+	Recommended string
+	IsOk        bool
+	Description string
+}
+
+// RunEnvironmentDiagnostics проверяет переменные окружения, влияющие на работу компонентов
+func RunEnvironmentDiagnostics() []EnvCheckResult {
+	autoUpdateVal := os.Getenv("AGY_CLI_DISABLE_AUTO_UPDATE")
+	autoUpdateOk := autoUpdateVal == "1" || strings.ToLower(autoUpdateVal) == "true"
+
+	return []EnvCheckResult{
+		{
+			Key:         "AGY_CLI_DISABLE_AUTO_UPDATE",
+			Value:       autoUpdateVal,
+			Recommended: "1",
+			IsOk:        autoUpdateOk,
+			Description: "Отключение автообновления CLI (предотвращает откат патча стоковым бинарником)",
+		},
+	}
 }
 
 // RunNetworkDiagnostics проверяет доступность ключевых серверов Google/Antigravity

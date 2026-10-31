@@ -182,6 +182,10 @@ func runPatch(targets []targetDef, filter []string) {
 			fmt.Printf("  %s[FAIL] Patch failed: %v%s\n\n", colorRed, err, colorReset)
 		} else {
 			fmt.Printf("  %s[SUCCESS] Patched & verified! Backup created.%s\n\n", colorGreen, colorReset)
+			if t.id == patcher.TargetCLI && os.Getenv("AGY_CLI_DISABLE_AUTO_UPDATE") == "" {
+				fmt.Printf("  %s[TIP] Чтобы фоновый автоапдейтер CLI не перезаписывал пропатченный файл,%s\n", colorYellow, colorReset)
+				fmt.Printf("        %sдобавьте в ~/.zshrc или ~/.bashrc: export AGY_CLI_DISABLE_AUTO_UPDATE=1%s\n\n", colorYellow, colorReset)
+			}
 		}
 	}
 }
@@ -235,6 +239,17 @@ func runDoctor(targets []targetDef) {
 		} else {
 			allOk = false
 			fmt.Printf("  - %-20s : %sBLOCKED / ERROR%s (%s)\n", res.Name, colorRed, colorReset, res.Error)
+		}
+	}
+
+	fmt.Println("\n3. Environment & Auto-Update Protection:")
+	envResults := doctor.RunEnvironmentDiagnostics()
+	for _, env := range envResults {
+		if env.IsOk {
+			fmt.Printf("  - %-30s : %sENABLED%s (защита активна)\n", env.Key, colorGreen, colorReset)
+		} else {
+			fmt.Printf("  - %-30s : %sNOT SET%s (рекомендуется: %s)\n", env.Key, colorYellow, colorReset, env.Recommended)
+			fmt.Printf("    %s↳ %s%s\n", colorYellow, env.Description, colorReset)
 		}
 	}
 
