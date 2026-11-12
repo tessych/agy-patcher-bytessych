@@ -6,8 +6,9 @@ import (
 	"net"
 	"net/http"
 	"os"
-	"strings"
 	"time"
+
+	"github.com/tessych/agy-patcher-bytessych/pkg/protect"
 )
 
 // CheckResult содержит результат сетевой проверки
@@ -31,7 +32,10 @@ type EnvCheckResult struct {
 // RunEnvironmentDiagnostics проверяет переменные окружения, влияющие на работу компонентов
 func RunEnvironmentDiagnostics() []EnvCheckResult {
 	autoUpdateVal := os.Getenv("AGY_CLI_DISABLE_AUTO_UPDATE")
-	autoUpdateOk := autoUpdateVal == "1" || strings.ToLower(autoUpdateVal) == "true"
+	autoUpdateOk := protect.IsAutoUpdateDisabled()
+	if autoUpdateVal == "" && autoUpdateOk {
+		autoUpdateVal = "1 (active in system/shell config)"
+	}
 
 	return []EnvCheckResult{
 		{
@@ -39,7 +43,7 @@ func RunEnvironmentDiagnostics() []EnvCheckResult {
 			Value:       autoUpdateVal,
 			Recommended: "1",
 			IsOk:        autoUpdateOk,
-			Description: "Отключение автообновления CLI (предотвращает откат патча стоковым бинарником)",
+			Description: "Отключение автообновления CLI (запустите 'agy-patcher protect' для авто-настройки)",
 		},
 	}
 }

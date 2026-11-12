@@ -6,7 +6,10 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"os/exec"
 	"path/filepath"
+	"runtime"
+	"strings"
 
 	bin "github.com/tessych/agy-patcher-bytessych/pkg/binary"
 )
@@ -208,9 +211,36 @@ func (p *Patcher) ApplyPatch() error {
 
 	if p.Target == TargetIDE {
 		ClearIDECache()
+	} else {
+		macPostProcess(p.Path)
 	}
 
 	return nil
+}
+
+// macPostProcess выполняет ad-hoc подпись и снимает флаг карантина на macOS
+func macPostProcess(path string) {
+	if runtime.GOOS != "darwin" {
+		return
+	}
+	// Ad-hoc подпись, чтобы на Apple Silicon arm64 бинарник не завершался с SIGKILL (CODESIGNING)
+	_ = exec.Command("/usr/bin/codesign", "--force", "--sign", "-", path).Run()
+	_ = exec.Command("/usr/bin/xattr", "-d", "com.apple.quarantine", path).Run()
+
+	// Если файл находится внутри .app бандла, обновляем подпись бандла целиком
+	cur := path
+	for {
+		dir := filepath.Dir(cur)
+		if dir == cur || dir == "." || dir == "/" {
+			break
+		}
+		if strings.HasSuffix(dir, ".app") {
+			_ = exec.Command("/usr/bin/codesign", "--force", "--sign", "-", dir).Run()
+			_ = exec.Command("/usr/bin/xattr", "-cr", dir).Run()
+			break
+		}
+		cur = dir
+	}
 }
 
 // ClearIDECache cleans V8 bytecode caches for IDE
@@ -252,6 +282,10 @@ func (p *Patcher) Restore() error {
 	status, _, err := p.GetStatus()
 	if err != nil || status != StatusUnpatched {
 		return fmt.Errorf("restore verification failed (state=%s): %v", status, err)
+	}
+
+	if p.Target != TargetIDE {
+		macPostProcess(p.Path)
 	}
 
 	return nil
